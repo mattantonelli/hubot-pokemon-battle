@@ -1,6 +1,6 @@
 {
   "name": "hubot-pokemon-battle",
-  "description": "A simple Pokémon battler.",
+  "description": "A simple Pokémon battler script for Hubot.",
   "version": "0.0.0",
   "author": "github.com/mattantonelli",
   "license": "MIT",
@@ -9,11 +9,11 @@
 
   "repository": {
     "type": "git",
-    "url": "git://github.com/hubot-scripts/hubot-pokemon-battle.git"
+    "url": "git://github.com/mattantonelli/hubot-pokemon-battle.git"
   },
 
   "bugs": {
-    "url": "https://github.com/hubot-scripts/hubot-pokemon-battle/issues"
+    "url": "https://github.com/mattantonelli/hubot-pokemon-battle/issues"
   },
 
   "dependencies": {
