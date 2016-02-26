@@ -2,9 +2,9 @@
 #   A simple Pokémon battler.
 #
 # Configuration:
-#   BULBASAUR_EMOJI  - Emoji keyword for Bulbasaur  (e.g. :bulbasaur:)
-#   CHARMANDER_EMOJI - Emoji keyword for Charmander (e.g. :charmander:)
-#   SQUIRTLE_EMOJI   - Emoji keyword for Squirtle   (e.g. :squirtle:)
+#   BULBASAUR_EMOJI  - Emoji keyword for Bulbasaur  (default: :bulbasaur:)
+#   CHARMANDER_EMOJI - Emoji keyword for Charmander (default: :charmander:)
+#   SQUIRTLE_EMOJI   - Emoji keyword for Squirtle   (default: :squirtle:)
 #
 # Commands:
 #   hubot poke battle start   - start a new battle
@@ -40,9 +40,9 @@ WATER_GUN = { name: 'WATER GUN', type: 'water', effect: 'special attack', power:
 
 # Pokémon
 BULBASAUR = {
-  name: 'BULBASAUR'
-  emoji: env.BULBASAUR_EMOJI
+  name: "#{env.BULBASAUR_EMOJI || ':bulbasaur:'} Bulbasaur"
   type: 'grass'
+  level: 1
   moves: [TACKLE, GROWL, VINE_WHIP]
   hp: 45
   attack: 49
@@ -55,9 +55,9 @@ BULBASAUR = {
 }
 
 CHARMANDER = {
-  name: 'CHARMANDER'
-  emoji: env.CHARMANDER_EMOJI
+  name: "#{env.CHARMANDER_EMOJI || ':charmander:'} Charmander"
   type: 'fire'
+  level: 1
   moves: [SCRATCH, GROWL, EMBER]
   hp: 39
   attack: 52
@@ -70,9 +70,9 @@ CHARMANDER = {
 }
 
 SQUIRTLE = {
-  name: 'SQUIRTLE'
-  emoji: env.SQUIRTLE_EMOJI
+  name: "#{env.SQUIRTLE_EMOJI || ':squirtle:'} Squirtle"
   type: 'water'
+  level: 1
   moves: [TACKLE, TAIL_WHIP, WATER_GUN]
   hp: 44
   attack: 48
@@ -85,41 +85,63 @@ SQUIRTLE = {
 }
 
 module.exports = (robot) ->
-  robot.respond /poke battle start/i, (msg) ->
-    startGame(msg)
+  robot.respond /poke battle start/i, (res) ->
+    startGame(res)
 
-  robot.respond /poke battle restart/i, (msg) ->
-    restartGame(msg)
+  robot.respond /poke battle restart/i, (res) ->
+    restartGame(res)
 
-  robot.respond /poke battle end/i, (msg) ->
-    endGame(msg)
+  robot.respond /poke battle end/i, (res) ->
+    endGame(res)
 
 
-  startGame = (msg) ->
-    # Start
+  startGame = (res) ->
+    res.send """
+             Welcome to the Hubot Pokémon Stadium!
+             Please choose your Pokémon:
+             #{SQUIRTLE.name} #{BULBASAUR.name} #{CHARMANDER.name}
+             """
+    robot.hear /(squirtle|bulbasaur|charmander)/i, (res) ->
+      choosePokemon(res, res.match[1])
 
-  restartGame = (msg) ->
+  choosePokemon = (res, pokemon) ->
+    key = brainKey(res, 'attacker')
+
+    if pokemon == 'squirtle'
+      robot.brain.set(key, SQUIRTLE)
+    else if pokemon == 'bulbasaur'
+      robot.brain.set(key, BULBASAUR)
+    else if pokemon == 'charmander'
+      robot.brain.set(key, CHARMANDER)
+
+    pokemon = robot.brain.get(key)
+    res.send "You chose #{pokemon.name}!"
+
+  restartGame = (res) ->
     # Restart
 
-  endGame = (msg) ->
+  endGame = (res) ->
     # End
 
-  useMove = (msg, attacker, defender, move) ->
+  useMove = (res, attacker, defender, move) ->
     if move.effect == 'attack' || move.effect == 'special attack'
       attack = if move.effect == 'attack' then attacker.attack else attacker.sp_attack
       defense = if move.effect == 'attack' then defender.defense else defender.sp_defense
       attack  *= STAGE_MULTIPLIERS[attacker.attack_stage + 6]
       defense *= STAGE_MULTIPLIERS[defender.defense_stage + 6]
-      damage = ( ((2 * 1 + 10) / 250) * (attack / defense) * move.power ) * modifier(attacker, defender, move)
+      damage = ( ((2 * attacker.level + 10) / 250) * (attack / defense) * move.power ) * modifier(attacker, defender, move)
+      defender.hp = Math.max(defender.hp - damage, 0)
     else if move.effect == 'attack down'
       defender.attack_stage = Math.max(defender.attack_stage - 1, -6)
     else if move.effect == 'defense down'
       defender.defense_stage = Math.max(defender.defense_stage - 1, -6)
 
   modifier = (attacker, defender, move) ->
-    stab = if attacker.type == move.type then 1.5 else 1
+    stab = if attacker.type == move.type then 1.5 else 1.0
     type = TYPE_MODIFIERS[move.type][defender.type]
     critical = Math.random() * 100 < 6.25
     random = (Math.floor(Math.random() * 16) + 85) / 100
     stab * type * critical * random
 
+  brainKey = (res, key) ->
+    "#{res}-#{key}"
